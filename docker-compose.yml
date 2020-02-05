@@ -1,0 +1,69 @@
+version: '3.6'
+
+services:
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${TAG}
+    container_name: elasticsearch
+    # environment:
+    #   - bootstrap.memory_lock=true
+    #   - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    #   - discovery.type=single-node
+    # ulimits:
+    #   memlock:
+    #     soft: -1
+    #     hard: -1
+    secrets:
+      - source: elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - elastic-net
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${TAG}
+    container_name: kibana
+    environment:
+      ELASTICSEARCH_URL: "http://elasticsearch:9200"
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
+    networks:
+      - elastic-net
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${TAG}
+    container_name: logstash
+    secrets:
+      - source: logstash.conf
+        target: /usr/share/logstash/pipeline/logstash.conf
+      - source: logstash.yml
+        target: /usr/share/logstash/config/logstash.yml
+    ports:
+      - 5044:5044
+    depends_on:
+      - elasticsearch 
+    networks:
+      - elastic-net 
+
+
+
+secrets:
+  elasticsearch.yml:
+    file: ./config/elasticsearch/elasticsearch.yml 
+  logstash.conf:  
+    file: ./config/logstash/pipeline/logstash.conf    
+  logstash.yml:  
+    file: ./config/logstash/logstash.yml 
+
+volumes:
+  es_data:
+
+networks:
+  elastic-net:
+    driver: bridge  
